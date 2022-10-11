@@ -1,0 +1,725 @@
+---
+title: "Tutorial_2: Data Wrangling, Tidy"
+date: "Week: 18th - 22nd Nov, 2019"
+output: html_document
+---
+<br>
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(
+  warning = FALSE, # supress warnings per default 
+  message = FALSE  # supress messages per default 
+  )
+```
+
+```{r setup, eval=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = "/Users/HulaLula/Downloads")
+```
+
+```{r, echo=FALSE}
+
+library(tidyverse)
+
+```
+
+## Agenda
+- General Intro to Variables and Data
+- Data i/o
+  + `read_csv()` and `write_csv()` functions in tidyverse.
+- Data Wrangling
+  + Pivoting Data – Separating, Gathering
+  + Combining Data
+  + Tidy Column Selections
+  + Column Adding, Renaming
+  + Filtering
+  + Sorting
+  + Grouped Operations
+
+<br><br>
+
+## 1. REVIEW: Types of variables
+
+<br>
+
+Dependent variable --> ?
+Independent variable --> ?  
+
+<br><br>
+
+## 2. REVIEW: Factorial Designs
+
+- most common approach to include multiple independent variables in one experiment
+
+- independent variable in the context of factorial design can also be called a factor
+
+- in a factorial design, each level of one independent variable is combined with each level of the others to produce all possible combinations
+
+- each combination then becomes a condition in the experiment
+
+- a factorial design can include any number of independent variables with any number of levels. For example, an experiment could include the type of psychotherapy (cognitive vs. behavioral), the length of the psychotherapy (2 weeks vs. 2 months), and the sex of the psychotherapist (female vs. male)
+
+- This would be a 2 x 2 x 2 factorial design and would have eight conditions
+
+- In practice, it is unusual for there to be more than three independent variables with more than two or three levels each: strong increase of conditions with each added factor and need for participants to fill them
+
+Read more stuff about factorial designs: [here](https://crumplab.github.io/ResearchMethods/factorial-designs.html).
+
+<br><br>
+
+## 3. Defining "Messy Data"
+<br>
+
+Data and how it arrives at our doorstep is not always easily accessible or interpretable. 
+It often needs to be transformed into a representation in which we can analyze (plotting, statistical analyses) it better. Data can also be full of superflous (to our purposes) information, which then needs to be "cleaned". All of this happens in the domain of "preprocessing": what happens to our data pre-analysis. 
+
+In the lecture, the notion of "tidy data" was introduced. What does this mean?
+
+__Following Wickham (2014), a tidy representation of (rectangular) data is defined as one where__
+
+*- each variable forms a column,*
+*- each observation forms a row, and*
+*- each type of observational unit forms a table.*
+
+*- bus also no redundancy*
+
+Any data set that is not tidy, we will call "messy data". 
+
+<br><br>
+
+## 4. First steps: Read in Data
+<br>
+
+[data import cheat sheet](https://rawgit.com/rstudio/cheatsheets/master/data-import.pdf)
+
+How to manually read in data: 
+Import Dataset -> From Text (readr) -> Browse -> Adjust Parameters -> Import
+
+- "Code Preview" shows you the code for this operation 
+-  Sometimes it is nice to preview data from funky files
+
+##### Exercise: 
+Let's try it once together: Download the data set "berlin_airbnb.csv" containing airbnb data from: StudIP -> files -> scroll all the way down!
+
+```{r}
+# Loading a NEW DATASET
+# checking the working directory   
+getwd()
+
+# you can also use "setwd(dir)" to point your R path torwards your desired working directory or 
+# speficy a path in the "read_csv()" function directly 
+
+# Reading the file       
+berlin_bnb <- read_csv("./berlin_airbnb.csv")
+glimpse(berlin_bnb)
+```
+
+<br><br>
+
+## 5. Data Wrangling
+<br>
+
+If a data set contains too much information for your current purposes, you can discard irrelevant (or unhelpful) rows and columns. 
+
+
+### 5.1. Selecting columns
+
+The function select allows to pick out a subset of columns. Interestingly, it can also be used to reorder columns, because the order in which column names are specified matches the order in the returned tibble.
+
+By Selecting columns that we want, in the order that we want them: 
+
+`id`, `name`, `host_id`, `host_name`, `room_type`, `price`,`Neighbourhood`, `number_of_reviews`, `last_review`, `reviews_per_month`, `availability_365`.
+
+```{r eval=TRUE}
+berlin_bnb_proc <- berlin_bnb %>% 
+  select(id, name, host_id, host_name, room_type, price, Neighbourhood, number_of_reviews, last_review, reviews_per_month, availability_365)
+
+```
+
+By selecting columns that we do not want: 
+
+Suppose we do not want columns that have the ID info of the place and the host, i.e. `id`, `host_id`.
+
+```{r eval=FALSE}
+berlin_bnb_proc <- berlin_bnb %>% 
+  select(-id, -host_id) 
+```
+
+### 5.2. Tidy selection of column names
+
+To select the colums in several functions within the tidyverse, such as pivot_longer() or select(), there are other useful helper functions from the tidyselect package. Here are some examples.
+
+To select columns using their indices:
+```{r eval=TRUE}
+berlin_bnb_proc %>% 
+  select(2:5)
+```
+
+To select columns starting with some "String":
+```{r eval=TRUE}
+berlin_bnb_proc %>% 
+  select(starts_with("host"))
+```
+
+To select columns ending with some "String":
+```{r eval=TRUE}
+berlin_bnb_proc %>% 
+  select(ends_with("id"))
+```
+
+To select columns containing some "String":
+```{r eval=TRUE}
+berlin_bnb_proc %>% 
+  select(matches('review'))
+```
+
+You can also use this `select(matches())` command to select columns with multiple string matches. To select all columns containing 'host' or 'review' in their names:
+
+```{r eval=TRUE}
+berlin_bnb_proc %>% 
+  select(matches('host|review'))
+```
+
+If you have columns in your dataset that begin with a certain string, say 'Week_' and have integers following it, like: 'Week_01', 'Week_02', and so on, you may use:
+```{r eval= FALSE}
+your_dataset %>% 
+  select(num_range("Week_0", 1:5))
+```
+
+### 5.3. Slicing
+
+To select rows by an index or a vector of indices, use the slice function:
+
+```{r eval=TRUE}
+berlin_bnb_proc %>% 
+  # keep only entries from rows with an even index from 2 to 6
+  slice(c(2,4,6))
+
+berlin_bnb_proc %>% 
+  # for getting the last entry in the dataset
+  slice(n())
+```
+
+### 5.4. Pulling a variable
+
+One can use the '$' operator to pull one column/variable out of the dataset like:
+
+```{r eval=FALSE}
+# pulling the variable 'name' from the dataset that contains the names of all the places in the berlin airbnb database
+berlin_bnb_proc$name
+```
+
+Equivalently, one can also use the pull function, like:
+
+```{r, eval=FALSE}
+# pull out the 'name' variable from the dataset
+berlin_bnb_proc%>% pull(name)
+```
+
+```{r, eval=TRUE}
+# pull out the 'name' variable from the dataset and compute its length
+berlin_bnb_proc %>% pull(name) %>% length
+
+# pull out the 'name' variable from the dataset and compute the number of unique entries
+berlin_bnb_proc %>% pull(name) %>% unique %>% length
+```
+
+### 5.5. Filtering
+
+The function filter takes a Boolean expression and returns only those rows of which the Boolean expression is true.
+
+Suppose we want to have some info only about rooms that are of the shared type:
+
+```{r eval=TRUE}
+
+unique(berlin_bnb_proc$room_type)
+
+berlin_bnb_proc %>% 
+  # keep only entries where the rooms are shared
+  filter(room_type=="Shared room") %>% 
+  # show only the host_id and host_name columns for the filtered query
+  select(matches('host')) %>% 
+  # If you also want the total count of the shared rooms in your database
+   print
+```
+
+##### Exercise: 
+
+*Filter out all the places (names and ids) in 'berlin_bnb_proc' which have 0 reviews and store the new dataset in 'berlin_bnb_notrecomm'.*
+
+```{r eval=FALSE, include=FALSE}
+# SOLUTION
+berlin_bnb_notrecomm<- berlin_bnb_proc %>% 
+  filter(number_of_reviews==0) %>% select(id, name)
+```
+
+### 5.6. Adding new columns
+
+To add a new column, or to change an existing one use `mutate()`.
+
+Suppose you want to label the places if they are expensive or not. One way to do it could be to create a new (logical) column `Expensive` that stores TRUE if the place's `price` is more than 100 and FALSE otherwise.
+```{r eval=TRUE }
+berlin_bnb_proc %>% 
+  mutate(
+    # add a new column called 'Expensive' based on the price
+    'expensive' = price >= 100
+  )
+```
+
+Now suppose you want to create a new column `Price_range` that contains keywords:
+
+- `cheap` if the price is less than or equal to 50
+- `moderate` if the price is greater than 50 but less than or equal to 100
+- `expensive` if the price is greater than 100
+
+You can use the function `case_when()`  that allows you to vectorise multiple if_else() statements as below:
+
+```{r eval=TRUE}
+berlin_bnb_proc %>% 
+  mutate(
+    # add a new column called 'Expensive' based on the price
+    Price_range = case_when(
+      price<=50 ~ 'cheap',
+      price>50&price<=100 ~ 'moderate',
+      price>100 ~ 'expensive'
+    )
+  )
+```
+
+__Note:__ Like an if statement, the arguments are evaluated in order, so you must proceed from the most specific to the most general. For example, this won't work:
+```{r eval=TRUE}
+berlin_bnb_proc %>% 
+  mutate(
+    # add a new column called 'Expensive' based on the price
+    Price_range = case_when(
+      price<=50 ~ 'cheap',
+      price>50 ~ 'expensive',
+      price>50&price<=100 ~ 'moderate'
+    )
+  )
+```
+
+__Note__: NA values in the column do not get special treatment. If you want to explicitly handle NA values you can use the `is.na` function.
+
+##### Exercise: 
+
+*Add a column 'popularity' with keywords: 'very popular', 'moderately popular', 'less popular' and 'Not recommended' based on number of reviews :*
+
+- *very popular: >200 reviews*
+- *moderately: 50-200 reviews*
+- *less popular: <50*
+- *not recommended: =0 or NA.*
+    
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# SOLUTION
+berlin_bnb_proc %>% 
+  mutate(
+    popularity = case_when(
+      number_of_reviews>200 ~ 'high',
+      number_of_reviews>=50&number_of_reviews<=200 ~ 'moderate',
+      is.na(number_of_reviews)|number_of_reviews==0 ~ 'Not recommended',
+      number_of_reviews<50 ~ 'low'
+    )
+  )
+
+```
+
+### 5.7. Changing, Renaming an existing column
+
+The strings for the types of rooms in the database are rather messy (e.g., 'Entire room/apt') and contain the word 'room' in every entry of the column `room_type`. So let us make it more elegant and reader-friendly, using `mutate()`, by deleting the word 'room' from all the entries and changing 'Entire room/apt' to 'Apartment'. 
+
+Suppose you also wish to change the name of this column to `type_of_room` and give an ordering (ordered factor) to the type of room as: Apartment < Private < Hotel < Shared.
+
+__Note__: If you want to indicate a fixed order of the recurring elements in a (character) vector, e.g., for plotting in a particular order or an experimental variable that is a factorial design, you should make this column an ordered factor. 
+
+```{r eval=TRUE}
+unique(berlin_bnb_proc$room_type)
+
+berlin_bnb_proc <- berlin_bnb_proc %>% 
+  mutate(
+    # change the entries in the column 'room_type'
+    room_type = case_when(
+      room_type=='Private room' ~ 'Private',
+      room_type=='Entire home/apt' ~ 'Apartment',
+      room_type=='Hotel room' ~ 'Hotel',
+      room_type=='Shared room' ~ 'Shared'
+    )
+  ) %>% 
+  # rename the column
+  rename(type_of_room=room_type) %>% 
+  # turn the column into an ordered factor
+  mutate(
+    type_of_room=factor(
+      type_of_room,
+      ordered=T,
+      levels=c("Apartment","Private", "Hotel","Shared")
+    )
+  )
+  
+unique(berlin_bnb_proc$type_of_room)
+```
+
+##### Exercise: 
+
+*Change the name of the 'price' column to 'price_per_night(in€)'.*
+```{r eval=FALSE, include=FALSE}
+#SOLUTION
+berlin_bnb_proc %>% 
+  rename(
+    "price_per_night(in€)"=price
+  )
+```
+
+### 5.8. Sorting
+
+If you want to order a data set along a column, e.g., for inspection or printing as a table, then you can do that using the `arrange()` function. You can specify several columns to sort alpha-numerically in ascending order, and also indicate a descending order using the `desc()` function:
+
+```{r eval=TRUE}
+
+berlin_bnb_proc %>% 
+  # arranges by price from lowest to highest, and equal price entries are decided by
+  # the number of reviews: highest to lowest (desc())
+  arrange(price, desc(number_of_reviews))
+```
+
+##### Exercise: 
+
+*Arrange all the entries with 'Pankow' neighbourhood group and 'Private' type of room based on the number of reviews from highest to lowest and and the availability_365, also from highest to lowest. Display only the place names and the price.*
+
+```{r eval=FALSE, include=FALSE}
+# SOLUTION
+berlin_bnb_proc %>%
+  filter(
+    neighbourhood_group=='Pankow',
+    Type_of_room=='Private',
+    price<50
+    ) %>%
+    arrange(desc(number_of_reviews), desc(availability_365)) %>% 
+  select(name, price)
+
+```
+
+### 5.9. Splitting and uniting columns
+
+Suppose you have a dataset like below:
+```{r }
+bnb_posting_ratings_messy <- 
+  tribble(
+    ~airbnb_posting,                                   ~rating,
+    "Nice room near S-Bahnhof Schöneberg",              "4,4.5,3,4.5",
+    "Spacious flat in the middle of Wedding",           "3.5,4,4,5",
+    "Apartment for two people on Kudamm",               "5,4.5,5,4.5"
+  ) %>% 
+  print
+```
+
+This is not a useful representation. The review scores for each apartment are stored together in a single column, separated by comma and furthermore stored as a character vector.
+
+To disentangle information in a single column, you could use the `separate()` function:
+
+```{r}
+
+bnb_posting_ratings_messy  %>% 
+  separate(
+    col = rating,                           # which column to split up
+    into = str_c("guest_rating", 1:4),      # names of the new column to store results
+    sep = ",",                              # separate by which character / reg-exp
+    convert = T                           # convert = TRUE can automatically detect integer/numeric values
+    ) %>%                           
+  print
+
+```
+
+If you have reason to perform the reverse operation, i.e., join together several columns, use the `unite()` function.
+
+##### Exercise: 
+
+*Look at the variable "Neighbourhood" in your dataset "berlin_bnb_proc". Looks like we could split it into the two variables "address" and "district".*
+
+```{r eval=TRUE, include=FALSE}
+# SOLUTION
+
+berlin_bnb_proc <- berlin_bnb_proc %>%
+ separate(
+   col= Neighbourhood,
+   sep=', ',
+   into= c("address","district"),     # The order here matters
+   convert='T'
+ ) %>%
+  print
+
+```
+
+### 5.10. Grouped operations
+
+A frequently occurring problem in data analysis is to obtain a summary statistic. 
+You may be interested in calculating the average price of lodging in a certain district.
+Also, arrange it in the ascending order of the price.
+
+```{r eval=TRUE}
+
+grouped_avg_price <-berlin_bnb_proc %>%
+  # grouping by 'district'
+  group_by(district) %>% 
+  # summarizing based on the grouping
+  summarize(                          # summarise() is typically used on grouped data created by
+                                      # group_by().The output will have one row for each group.
+                                       
+    avg_price = mean(price)
+  ) %>% 
+  # arranging in ascending order of 'avg_price'
+  arrange(avg_price)  %>% 
+  print
+
+```
+
+We can also use "mutate()" with grouping. 
+
+```{r eval=TRUE}
+berlin_bnb_proc %>% 
+  group_by(district) %>% 
+  # generating a new column "avg_price" containing mean prices "district"-wise.
+  mutate(
+    avg_price = mean(price)
+  )
+```
+
+If you are looking for a short summary of the average price by district as computed above, then you just need to select the "avg_price" column from this new tibble and call `summary()`. This command will give you information on the average price in each district of Berlin like: the max.-min. value of the average price, etc.
+
+```{r eval=TRUE}
+berlin_bnb_proc %>% 
+  group_by(district) %>% 
+  summarize(
+    avg_price = mean(price)
+  ) %>% 
+  select(avg_price) %>% summary() 
+
+```
+
+__Note:__ It is important to remember that after a call of group_by, the resulting tibbles retains the grouping information for all subsequent operations.
+
+##### Exercise: 
+
+*Filter out all places in 'Pankow' which are 'expensive', group them by the 'Type_of_room' and produce a summary of the average prices.*
+
+```{r eval=TRUE, include=FALSE}
+#SOLUTION
+
+berlin_bnb_proc %>% 
+  filter(
+    district=='Pankow',
+    price > 100
+  ) %>% 
+  group_by(type_of_room) %>% 
+  summarise(
+    avg_price=mean(price)
+  ) %>% arrange(avg_price) %>% summary()  %>%
+  print()
+```
+
+### 5.11. Combining tibbles
+
+Imagine you have a set of data. You then obtain another set of data that shares one variable with the former but also additional variables and values. 
+
+In the examplatory mini data sets below, we see that the two tribbles share the column "religion". To conjoin these two sets, we may use the function "full_join()".
+ 
+"full_join()" will retain all information from both columns, even if not all values within the two columns to be conjoined is perfectly congruent.
+
+- You can also check out subtypes of this function, such as "right_join()", "semi_join()" etc.
+ 
+```{r}
+religion <- tribble(
+  ~religion,    ~income,      ~count,
+  "Atheist",    ">50k",       58,
+  "Buddhist",    ">50k",      21,
+  "Muslim",      ">50k",      3,
+  "Atheist",      ">20k",    70,
+  "Buddhist",    ">20k",     234,
+  "Muslim",  ">20k",         34)
+
+religion2 <- tribble(               # additional table with religion as a variable
+  ~religion,    ~savings,
+  "Atheist",      ">30k",   
+  "Buddhist",    ">20k",
+  "Muslim",      ">40k"
+  
+)
+
+full_join(religion,religion2, by = "religion")
+
+```
+
+Exercise: Full join the two datasets "berlin_bnb_proc", "grouped_avg_price" by "district".
+
+```{r eval=FALSE, include= FALSE }
+
+##SOLUTION
+
+berlin_bnb_proc<- full_join(berlin_bnb_proc,grouped_avg_price, by = "district") %>% 
+print(berlin_bnb_proc)
+```
+
+__Note:__ This gives the same output as when you computed the `avg_price` variable in 5.10. using the mutate() command. This is because mutate() adds a new column to the dataset containing the summary statistic such that the computed statistic (`avg_price` in this case) is added (repeatedly for each group) to each entry of the dataset.
+
+### 5.12. Pivoting
+
+What if your data is too wide or too long? Pivoting can go two ways: Making your data longer or making it wider.
+
+#### 5.12.1. pivot_longer() function
+
+- "pivot_longer()" takes several columns and gathers the values of all cells in these columns into a single novel column, the so-called "value column" (the column with the values of the cells to be gathered)
+- To not lose information, "pivot_longer()" also creates a second new column, the so-called "name column",
+the column with the names of the original columns that we gathered together
+- pivot_longer() "lengthens" data, increasing the number of rows and decreasing the number of columns
+
+- "pivot_longer()" needs three pieces of information:
+  1. which columns to spin around (function argument cols)
+  2. the name of the to-be-created new value column (function argument "values_to"")
+  3. the name of the to-be-created new name column (function argument "names_to"")
+
+Look at the dataset "religin_messy" (or alternatively, look at the inbuilt dataset "relig_income", it is the exact same data). How could this data possibly be improved?
+
+Exercise: Fill in the function for the arguments "cols", "names_to" and "values_to" in the code below:
+```{r}
+
+# data() loads all inbuild datasets 
+relig_income
+
+```
+
+```{r eval=FALSE}
+
+religin_longtidy <-relig_income %>% 
+  pivot_longer(
+    cols = #your code here,                              
+    names_to = #your code here,
+    values_to = #your code here
+  ) %>% print
+
+```
+
+```{r eval= FALSE, include=FALSE}
+#SOLUTION
+
+religin_longtidy <-relig_income %>% 
+  pivot_longer(
+    cols = c(-religion),                             # pivot every column except the first 
+    names_to = "income",
+    values_to = "count"
+  ) %>% print
+
+```
+
+#### 5.12.2. pivot_wider() function
+
+- The inverse transformation to "pivot_longer()" is "pivot_wider()"
+
+- "pivot_wider()" widens data, increasing the number of columns and decreasing the number of rows 
+
+- "pivot_wider()" picks out two columns, one column of values to distribute into new to-be-created columns, and one vector of names or groups which contains the information about the names of the to-be-created new columns
+
+I have artificially created a flawed dataset. How could we possibly improve it? 
+
+```{r}
+
+relig_income_toowide <- 
+  tibble(religion = rep(c('Agnostic', 'Buddhist', 'Catholic'), times = 2),
+         income =    rep(c('income/year', 'savings'), each = 3),
+         count = c('20-30k','30-40k','50-75k','>40k','>20k','>10k'))
+
+relig_income_toowide
+```
+
+Exercise: Fill in the function for "names_from" and "values_from" in the code below:
+```{r eval=FALSE, include=TRUE}
+
+religin_widetidy <-relig_income_toowide %>% 
+    pivot_wider(
+    names_from = #your code here,          
+    values_from = #your code here)  %>%    
+    print
+
+```
+
+```{r eval= TRUE, include=FALSE}
+# SOLUTION
+
+religin_widetidy <-relig_income_toowide %>% 
+    pivot_wider(
+    names_from = income,          # column containing the names of the new columns
+    values_from = count)  %>%     # column containing the values of the new columns
+    print
+
+```
+
+<br><br>
+
+## 6. Some Data Cleaning
+<br>
+
+We clean the data in two consecutive steps:
+
+### 6.1. Removing Irrelevant Stuff
+
+Suppose we do not want to have entries in our dataset of places with 0 days availability. Perhaps, these are hosts that have stopped offering the airbnb services and instead of removing their listings from the airbnb website, they chose to change their availability to 0. Hence:
+
+Remove all data of the places who have 0 in their availability_365 and also 'NA' in their last_review column. 
+
+```{r eval=TRUE}
+berlin_bnb_proc<-berlin_bnb_proc %>% 
+  filter(is.na(last_review)==FALSE,
+         availability_365!=0)
+```
+
+### 6.2. Cleaning by Popularity/Activity
+
+Suppose you wish to classify all hosts/places from the dataset which have a low 'reviews_per_month' value (see below) and which haven't been reviewed since 01-September-2019 as 'NOT ACTIVE' while the rest as 'ACTIVE' hosts. 
+
+But first, look at the possible values of 'reviews_per_month' in the dataset, using:
+```{r eval=TRUE}
+berlin_bnb_proc %>% 
+  select(reviews_per_month) %>% summary()
+```
+
+The range of 'reviews_per_month' varies between 0.02 and 39.51. Notice that if a place has less than 0.5 'reviews_per_month', it means that on average this place was reviewed once every two months (indicating less activity of the host or less popularity of the place).
+
+So, using this threshold value of 0.5 for the 'reviews_per_month', you can carry out the above filtering process!
+
+Create a separate column in your dataset 'Activity' that stores this information. And then remove all 'NOT ACTIVE' places from the database and store this new dataset with all the information, except: `id`, `host_id` and `Activity` columns.
+
+```{r eval=TRUE}
+
+berlin_bnb_proc<- berlin_bnb_proc %>% 
+  mutate(
+    Activity = case_when(
+      reviews_per_month<0.5 & last_review<as.Date("2019-09-01") ~ 'NOT ACTIVE',
+      TRUE ~ 'ACTIVE'
+    )
+  ) %>% 
+  filter(
+    Activity=='ACTIVE'
+  ) %>% 
+  select(-id, -host_id, -Activity)
+```
+
+Glimpse at your dataset once again, before writing it to the system:
+```{r eval=TRUE}
+glimpse(berlin_bnb_proc)
+```
+
+<br><br>
+
+## 7. Writing File back to the System
+<br>
+
+```{r eval=TRUE}
+getwd()
+
+write_csv(berlin_bnb_proc, "./berlin_airbnb_processed.csv")
+
+```
+<br><br>
+
+## Questions? Please ask!
+<br><br>
+<br><br>

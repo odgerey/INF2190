@@ -1,0 +1,240 @@
+---
+title: "Tutorial_3"
+author: "Maria & Jona"
+date: "11/19/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+# HW № 2
+
+## EXPERIMENTAL DESIGN 
+
+In the HomeWork you explored the King of France experimental data.
+We have only one factor: 'condition' and it has five levels: C0, C1, C6, ... 
+
+QUESTION: LET'S CALCULATE FACTORS  ONCE AGAIN! 
+
+Vignette is NOT a factor. We treat each vignette equal! This is item-level variation to make sure that we are not too repetitive. This shows in there not being any theoretically motivated hypothesis that hinges on a contrast or comparison among vignettes. 
+
+The experiment is a within subject. Each subject contributes once to ALL conditions. 
+
+QUESTION: HOW WOULD THE EXPERIMENT LOOK LIKE IF IT HAD A BETWEEN SUBJECT DESIGN?
+
+
+
+
+### In class exercise
+
+LET'S INVENT AN EXPERIMENT!  WE WANT TO CHECK PREDICTORS OF FINAL GRADES IN IDA COURSE.
+WHAT CAN INFLUENCE THE FINAL GRADE?
+
+
+HOW CAN WE MAKE AN EXPERIMENT TO CHECK IT?
+
+
+HOW MANY FACTORS WILL IT HAVE?
+
+
+HOW MANY CONDITIONS FOR EACH FACTOR? 
+
+
+HOW MANY (IF ANY) CONDITIONS ARE REQUIRED?
+
+
+SHOULD WE PERFORM WITHIN OR BETWEEN SUBJECT EXPERIMENT?
+
+
+IS IT A REPEATED MEASURES EXPERIMENT? IF NOT, HOW CAN WE MAKE IT SUCH? 
+
+
+WHICH VARIABLES WILL WE COLLECT? Nominal/Ordinal/Metric variables?
+
+
+
+
+
+#  Packages
+```{r, error=FALSE}
+library("tidyverse")  
+library("magrittr")
+```
+
+# Summary Statistics
+Let's upload some data!
+```{r}
+iris = as_tibble(iris)
+iris
+```
+
+
+## Summary
+
+```{r}
+
+iris %>% summary()
+
+```
+
+
+```{r}
+SP_M = mean(iris$Sepal.Width)
+PL_Mean <- mean(iris$Petal.Width)
+SP_MD=median(iris$Sepal.Width)
+SP_R=range(iris$Sepal.Width)
+SP_Q=quantile(iris$Sepal.Width)
+SP_Var=var(iris$Sepal.Width)
+SP_SD = sd(iris$Sepal.Width)
+
+
+SP_SD
+
+```
+
+
+```{r}
+iris %>% range(Sepal.Width)
+
+
+
+SW_range <- iris %$%  range(Sepal.Width)
+```
+
+
+```{r}
+layout(mat = matrix(c(1,2), 2, 1, byrow=TRUE),  height = c(1,4))
+par(mar=c(2, 2, 0.5, 1))
+boxplot(iris$Sepal.Width, horizontal=TRUE,  outline=TRUE,ylim=c(1,5), frame=FALSE, col = "green1")
+hist(iris$Sepal.Width,xlim=c(1,5), col = "pink", freq = FALSE)
+lines(density(iris$Sepal.Width))
+```
+
+
+## TODO: Calulate between which values 95% of Sepal Width are.
+```{r}
+quantile(iris$Sepal.Width, c(0.025, 0.975))
+sd(iris$Sepal.Width)
+```
+
+
+![](Prob.density.png)
+
+
+
+```{r}
+
+
+mean_iris <- iris %>%
+              summarise("Mean Sepal Width" = mean(Sepal.Width),
+                       "Mean Sepal Lengh" = mean(Sepal.Length),
+                       "Varience" = var(Sepal.Width),
+                       "Number of observartions"  = n()
+                       )
+mean_iris
+```
+
+
+
+### TODO: Now calculate mean width and lenght for a Petal and store it in a tibble
+```{r}
+# TODO
+```
+
+
+
+```{r}
+iris %$% plot(Petal.Width)
+```
+
+
+
+
+```{r}
+iris %$%  
+  boxplot(x=Sepal.Width)
+```
+
+
+
+```{r}
+iris %$%  
+  boxplot(Sepal.Width~Species, col=heat.colors(3))
+```
+
+
+```{r}
+ iris %>% group_by(Species) %>%
+  
+              summarise("Median Sepal Width" = median(Sepal.Width),
+                       "Median Sepal Lengh" = median(Sepal.Length),
+                       "Number of flowers" = n(),
+                       "sd"=sd(Sepal.Length))
+
+                       
+```
+
+
+## Boxplot with a mean value
+
+```{r}
+iris %>% 
+ggplot(aes(x=Species, y=Sepal.Width, fill=Species)) +
+    geom_boxplot(alpha=0.7) +
+    stat_summary(fun.y=mean, geom="point", shape=20, size=14, color="red", fill="red") +
+    theme(legend.position="none") +
+    scale_fill_brewer(palette="Set1")
+```
+
+
+The image is taken from ![https://towardsdatascience.com/]
+
+
+```{r}
+Iris_summary <- iris %>%  
+  group_by(Species) %>%   
+  summarise(mean_PL = mean(Petal.Length),  
+            sd_PL = sd(Petal.Length),  
+            n_PL = n(),  
+            SE_PL = sd(Petal.Length))  
+
+Iris_summary
+```
+
+
+```{r}
+Iris_summary %>%  
+  ggplot( aes(Species, mean_PL, fill=Species)) + 
+                   geom_col() +  
+                   geom_errorbar(aes(ymin = mean_PL - sd_PL, ymax = mean_PL + sd_PL), width=0.2)
+```
+
+
+
+
+
+# Always plot your data!!! Central tendencies are not always meaningful without visualisation!
+For example these graphs have same Mean, Median and CD!!!! 
+```{r}
+library(datasauRus)
+
+datasaurus_dozen %>% summary()
+
+datasaurus_dozen %>% 
+ggplot(aes(x=x, y=y, colour=dataset))+
+  geom_point()+
+  theme_void()+
+  theme(legend.position = "none")+
+  facet_wrap(~dataset, ncol=3)
+
+```
+
+
+
+
+
+

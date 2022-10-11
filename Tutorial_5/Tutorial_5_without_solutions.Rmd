@@ -1,0 +1,681 @@
+---
+title: "Tutorial_5: Basics of Probability, Bayes' Rule and Random Variables"
+date: "Week: 9th - 13th Dec, 2019"
+output: html_document
+---
+<br>
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(
+  warning = FALSE, # supress warnings per default 
+  message = FALSE  # supress messages per default 
+  )
+```
+
+```{r, echo=FALSE}
+library(tidyverse)
+```
+
+## Agenda
+- Probability Vocab: elementary outcomes, events, distributions
+- Probability Distributions from Samples
+- Structured Events: Joints, Marginals, Conditionals
+- Bayes' Rule
+- Random Variables: Expectation & Variance
+- Cumulative Distributions: Mass & Density Functions
+  
+<br><br>
+
+# 1. Probability Vocab: elementary outcomes, events, probability, distributions
+## 1.1 Recap
+When we look at a situation in terms of probability, we first need to define a few terms. Let's say I have a bag of M&M's:
+![M&M's](./m_and_m.png)
+
+And I want to know the distribution of colours within the bag, i.e. the probability of drawing each colour at *random*.
+This act of randomly drawing a single M&M and looking at its colour is an example of a **random process**.
+Any random process is defined by its **elementary outcomes**, i.e. the set of all of its possible "results". For our M&M example this would be $$\Omega_{MnM} = \{brown,\ blue,\ orange,\ red\}$$
+
+Any subset $A$ of $\Omega$ ($A \subseteq \Omega$) is called an **event**, e.g picking a red or orange M&M is defined as the event $$A = \{orange,\ red\}$$
+We can directly see that the probability of that event is 0.5 (5/10), whereas the probability of picking a blue M&M is 0.2 (2/10). When probabilities cannot be inferred easily with the naked eye we use **probability distributions**. They are functions that assign a probability to any event you throw at it.
+
+
+### Exercise
+Let's look at a standard card deck with 52 cards and consider the random process of picking one card out of the deck.
+![Cards](./cards.jpg)
+
+**What is $\Omega$ and what does it mean when I say that $P(\Omega) = 1$? Why is the statement true?**
+```{r}
+# YOUR ANSWER HERE
+```
+
+
+**Name a few events that could happen as a result of our random process.**
+```{r}
+# YOUR ANSWER HERE
+```
+
+
+**What is the probability of picking a black card?**
+```{r}
+# YOUR ANSWER HERE
+```
+
+
+**What is the probability of picking a Queen?**
+```{r}
+# YOUR ANSWER HERE
+```
+
+
+**What is the probability of picking a spade or a red King?**
+```{r}
+# YOUR ANSWER HERE
+```
+
+
+
+
+
+<br>
+
+# 2. Probability Distributions from Samples
+With many problems in the real world the corresponding probability distribution cannot be described in such a discrete and straightforward way as we have done for the deck of cards. This is why we need a way to approximate probability distributions, which we can do by defining them as a function that returns a representative sample of the distribution.
+```{r}
+sample_size <- 100
+x <- seq(-5, 5, length = sample_size)
+
+# Returns the true densities for each value (not actual samples), stays constant across different trials
+# Invariant to changes in sample size
+y_dist <- dnorm(x, mean = 0, sd = 1)
+qplot(x, y_dist, geom = "line")
+
+y_dist <- dnorm(x, mean = 0, sd = 1)
+qplot(x, y_dist, geom = "line")
+
+y_dist <- dnorm(x, mean = 0, sd = 1)
+qplot(x, y_dist, geom = "line")
+
+y_dist <- dnorm(x, mean = 0, sd = 1)
+qplot(x, y_dist, geom = "line")
+
+# Returns random samples from the true distribution, the resulting density plot looks slightly different with each new sample
+# Sensitive to changes in sample_size
+y_sample <- rnorm(sample_size, mean = 0, sd = 1)
+qplot(y_sample, geom = "density")
+
+y_sample <- rnorm(sample_size, mean = 0, sd = 1)
+qplot(y_sample, geom = "density")
+
+y_sample <- rnorm(sample_size, mean = 0, sd = 1)
+qplot(y_sample, geom = "density")
+
+y_sample <- rnorm(sample_size, mean = 0, sd = 1)
+qplot(y_sample, geom = "density")
+```
+
+```{r}
+# Binomial distribution
+x_axis <- 1:50
+binom_dist_05 <- as_tibble(dbinom(x_axis, size = length(x_axis), prob = 0.5))
+binom_dist_07 <- as_tibble(dbinom(x_axis, size = length(x_axis), prob = 0.7))
+binom_dist_01 <- as_tibble(dbinom(x_axis, size = length(x_axis), prob = 0.1))
+
+# binom_dist_30_033 <- as_tibble(dbinom(x_axis, size = 30, prob = 0.33))
+
+ggplot(mapping = aes(x = x_axis, y = value)) +
+  geom_line(data = binom_dist_05, color = "red") +
+  geom_line(data = binom_dist_07, color = "blue") +
+  geom_line(data = binom_dist_01, color = "green") 
+```
+
+```{r}
+# Poisson distribution
+x_axis <- 1:50
+pois_dist_1 <- as_tibble(dpois(x_axis, lambda = 1))
+pois_dist_4 <- as_tibble(dpois(x_axis, lambda = 4))
+pois_dist_10 <- as_tibble(dpois(x_axis, lambda = 10))
+
+ggplot(mapping = aes(x = x_axis, y = value)) +
+  geom_line(data = pois_dist_1, color = "red") +
+  geom_line(data = pois_dist_4, color = "blue") +
+  geom_line(data = pois_dist_10, color = "green")
+```
+
+
+<br>
+
+# 3. Joint, Marginal and Conditional Probabilities
+### Example
+*"Linda is 31 years old, single, outspoken, and very bright. She majored in philosophy. As a student, she was deeply concerned with issues of discrimination and social justice, and also participated in anti-nuclear demonstrations."*
+<br>
+<br>
+**Rank the following statements in order of their probability:**
+<br>
+1. Linda is active in the feminist movement						
+2. Linda is a bank teller										
+3. Linda is a bank teller and is active in the feminist movement
+<br>
+<br>
+
+```{r}
+# YOUR ANSWER HERE
+```
+
+
+If you rated statement 3 as more likely than statement 2, you are unfortunately wrong. But you are definitely not alone, 85% of participants in Tversky and Kahneman's original study (1983) did the same thing. It is much easier to recognise this so-called *Conjunction Fallacy* once you visualise the 3 statements in a Venn diagram:
+<br>
+![](./conjunction-fallacy.png)
+
+The third statement will never be more likely than the second one because the third places two restrictions on Linda's occupations (she is a bank teller *and* a feminist at the same time), whereas the second only places one constraint (she is a bank teller and she may or not be a feminist).
+<br>
+<br>
+
+### Theory
+**Marginal probabilities** refer to the probability of an event occurring on its own, without considering any other possible events, e.g. the marginal probability of Linda being a bank teller is 
+$$P(bank) = 0.2$$
+and the marginal probability of Linda being active in the feminist movement is
+$$P(feminist) = 0.9$$
+<br>
+
+**Joint probabilities** refer to the probability of two (or more) events occuring at the same time. If both events are **independent** from one another, i.e. the occurence of one does not influence the occurence of the other in any way, the joint probability is simply the product of both marginal probabilities, e.g. the probability of Linda being both a bank teller and active in the feminist movement is
+$$P(bank, feminist) = P(bank) \cdot P(feminist) = 0.2 \cdot 0.9 = 0.18$$
+<br>
+
+**Conditional probabilities** refer to the probability of an event *given* that you already know the outcome of another event. This is actually how we have been calculating the marginal and joint probabilities so far. We implicitly had Linda's description in mind when defining them. In reality, the probability of being a bank teller or a feminist should be much lower because we need to account for the whole population, not just for people that match Linda's description. Put in numbers: 
+$$P(feminist) = 0.15, \ P(feminist \ | \ description) = 0.9$$
+<br>
+
+Possible explanation for the Conjunction Fallacy: Many people might have interpreted the first two statements to implicitly exclude the not mentioned event:
+<br>
+1. Linda is active in the feminist movement						
+2. Linda is a bank teller										
+3. Linda is a bank teller and is active in the feminist movement
+<br>
+
+Let's just assume $P(feminist) = 0.9, \ P(\neg feminist) = 0.1, \ P(bank) = 0.2, \ P(\neg bank) = 0.8, \ $ to make calculation easier
+
+$$1.\ P(feminist, \neg bank) = P(feminist) \cdot P(\neg bank) = 0.9 \cdot 0.8 = 0.72$$
+$$2.\ P(bank, \neg feminist) = P(bank) \cdot P(\neg feminist) = 0.2 \cdot 0.1 = 0.02$$
+$$3.\ P(bank, feminist) = P(bank) \cdot P(feminist) = 0.2 \cdot 0.9 = 0.18$$
+
+As you can see, if you assume most participants interpreted the 3 statements in the way shown above, it *does* make sense to rate 3 as more likely than 2 (even though we've shown it to be false in probabilistic terms).
+But in any case, we just mention the Conjunction Fallacy here for illustration purposes, it is not relevant to the homework or the exam.
+
+<br>
+
+
+### Exercise
+Let's get back to our standard card deck and consider the structured event of rolling a die and drawing a card from a different suit depending on the number we rolled.
+If we roll a 1 or a 2, we'll draw a heart.
+<br>
+If we roll a 3 or a 4, we'll draw a diamond.
+<br>
+If we roll a 5, we'll draw a club.
+<br>
+If we roll a 6 we'll draw a spade.
+<br>
+
+**What are the marginal probabilities?**
+<br>
+```{r}
+# YOUR ANSWER HERE
+```
+
+**What is the conditional probability P(face | hearts)?** 
+```{r}
+# YOUR ANSWER HERE
+```
+
+**What is the conditional probability P(face | spades)? Why is this equal to P(face | hearts)?**
+```{r}
+# YOUR ANSWER HERE
+```
+
+<br>
+
+# 4. Bayes' Rule
+
+
+<center>
+<!-- ![Image Source: https://luminousmen.com/post/data-science-bayes-theorem](./Screenshot from 2019-12-07 18-07-04.png){#id .class width=50% height=50%}-->
+![](./Screenshot from 2019-12-07 18-21-18.png){#id .class width=50% height=50%}
+</center>
+
+<br>
+
+> <font size="2">
+_For those on the subjective-interpretation side of probabilities,  Bayes' Rule is an indispensable tool! Because for the _Bayesians_, probabilities can be used to quantify degrees of belief (assumptions) and based on these degrees of belief, _Bayesians_ perform inference._
+</font>
+
+<br>
+
+## How to best(?) conceptualize Bayes' Rule?
+
+<br>
+
+- There are things that we observe in the world. Let's take an observation _O1_.
+- These observable things usually have several _"causes"_ behind them, that we often want to know. Let us assume that _O1_ can be observed as a result of cause _C1_ or cause _C2_ or cause _C3_.
+
+__But,__
+
+- Since our world is too complex for us to see (know) every observable thing as being "caused" by a _certain_ cause only, we usually do not know for sure if what we have observed is "caused" by a _certain_ cause (i.e. we do not know if _O1_ is certainly being caused by _C1_, or if it is certainly being caused by _C2_, etc.).
+
+Thus,
+
+- Since we __do not know for sure__, we have a __degree of belief__ – described using probability – in the "cause" of a certain observed thing in the world. For eg., probability that _O1_ is caused by _C1_, or the conditional probability: $P(\textit{C1} \mid \textit{O1})$.
+
+<br>
+
+<center>
+![](./Screenshot from 2019-12-07 19-46-58.png){#id .class width=60% height=60%}
+</center>
+
+<br>
+
+> <font size="2"> _In the field of data analysis, one of the primary goals is to analyze and then explain the data. We work with __models__ (potential "causes") to __explain our data__ ("observables"):_ </font>
+
+<br>
+
+<center>
+![](./Screenshot from 2019-12-07 19-59-42.png){#id .class width=50% height=40%}
+</center>
+
+<br>
+
+## What do we need in order to evaluate $P(\textit{C1} \mid \textit{O1})$?
+
+<br>
+
+- Since _O1_ could be caused by any one of the three causes, we need the probabilities of observing _O1_ with any of the three causes, i.e. the following joint probabilities: 
+  + $P(\textit{O1}, \textit{C1})$
+  + $P(\textit{O1}, \textit{C2})$
+  + $P(\textit{O1}, \textit{C3})$
+  
+__But,__
+
+- They can be conditionally decomposed as:
+  + $P(\textit{O1}, \textit{C1})$ = $P(\textit{O1} \mid \textit{C1})$.$P(\textit{C1})$
+  + $P(\textit{O1}, \textit{C2})$ = $P(\textit{O1} \mid \textit{C1})$.$P(\textit{C1})$
+  + $P(\textit{O1}, \textit{C3})$ = $P(\textit{O1} \mid \textit{C1})$.$P(\textit{C1})$
+  
+__Finally,__
+
+- In order to compute $P(\textit{C1} \mid \textit{O1})$, we take the ratio of the probability of _O1_ occurring with cause _C1_ and the sum of the probabilities of _O1_ occurring with all the causes _C1_ taken together. In other words, we compute the ratio of _"favourable outcomes"_ and the _"total outcomes"_ (in the frequentist gist of probability).
+
+<center>
+$$P(\textit{C1} \mid \textit{O1}) =\frac{P(\textit{O1} \mid \textit{C1}).P(\textit{C1})}{P(\textit{O1} \mid \textit{C1}).P(\textit{C1}) + P(\textit{O1} \mid \textit{C1}).P(\textit{C1}) + P(\textit{O1} \mid \textit{C1}).P(\textit{C1})}$$
+</center>
+
+- Note that the term in the denominator is the marginal $P(\textit{O1})$, therefore, giving us:
+
+<br>
+
+<font size="4"><center>
+$$\boxed{P(\textit{C1} \mid \textit{O1}) =\frac{P(\textit{O1} \mid \textit{C1}).P(\textit{C1})}{P(\textit{O1})}}$$
+</center></font>
+
+<br>
+
+> <font size="2">_When thinking in terms of models to explain our data, Bayes' rule becomes:_</font>
+
+
+<font size="2"><center>
+$$\boxed{P(\textit{model 1} \mid \textit{DATA}) =\frac{P(\textit{DATA} \mid \textit{model 1}).P(\textit{model 1})}{P(\textit{DATA})}}$$
+</center></font>
+
+<br>
+
+## What is the best part about using probabilities to quantify a degree of belief?
+
+<br>
+
+We get to update our _beliefs_ as more evidence/data accumulates! In other words, with the accumulation of each data point, the posterior distribution becomes prior in an iterative process.
+
+<br>
+
+> <font size="2"> _The essence of Bayesian inference is to be “less wrong” as more data accumulates._ </font>
+
+<br>
+
+### Examples
+<br>
+
+#### Medical Tests
+
+- The result of a medical test could be positive or negative (something we observe). Let's say it is positive.
+- The result may be caused by presence of disease (true positive), or absence of it (false positive), when the testing device is inherently error-prone.
+- __Our Goal__: To determine the degree of belief in the test, i.e. the disease actually present when the test is positive.
+
+
+  + __What is the "observable" and what are the different "causes"?__
+<!-- Observable: test is positive/negative. Causes: presence or absence of disease.-->
+  + __What probability term do we need to determine?__
+<!-- P(disease=true|test=positive) -->
+  + __What other probability terms do we need in order to accomplish our goal? __
+<!-- P(test=positive|disease=true), P(disease=true), P(test=positive) -->
+
+<br>
+
+#### Classification
+
+- Suppose you wish to classify emails as _Spam_ or _Not Spam_ based on a finite set of _keywords_ appearing in the email. 
+- Let us suppose, for simplicity, that we only need to check for the absence or presence of two keywords ${K_1, K_2}$ in order to classify the email.
+- __Our Goal__: To determine whether an email should be classified as _Spam_ or _Not Spam_ after looking for the presence of the two keywords. Let us say: $K_1 = present (1), K_2 = absent (0)$ in the email.
+
+
+  +  __What is the "observable" and what are the different "causes"?__
+<!-- Observables: K_1=1, K_2=0 or K_1=1, K_2=1, etc.
+Causes: Spam = True or Spam = False -->
+  + __What probability term do we need to determine?__
+<!-- P(spam=True|K_1=1, K_2=0) -->
+  +  __What other probability terms do we need in order to accomplish our goal?__
+<!-- P(K_1=1,K_2=0|spam=True), P(spam=True), P(K_1=1,K_2=0) -->
+
+<br>
+
+### Exercise
+
+The entire output of a factory is produced on three machines M1, M2, M3. The three machines account for 20%, 30%, and 50% of the factory output. The fraction of defective items produced is 5% for the first machine; 3% for the second machine; and 1% for the third machine. 
+
+If an item is chosen at random from the total output and is found to be defective, what is the probability that it was produced by the third machine?
+
+  + __List the "observable" and the "causes".__
+  + __What probability term do you need to determine?__
+  + __What are all the other probability terms that you need?__
+  + __What is the probability that an item chosen at random is defective?__
+
+<!-- Solution:
+Observable: item is defective, causes: manufactured by M1, M2, or M3.
+The probability term that needs to be determined: P(M3|defective)
+
+We need to evaluate:
+$$P(\textit{M3} \mid \textit{defective}) =\frac{P(\textit{defective} \mid \textit{M3}).P(\textit{M3})}{P(\textit{defective})}$$ 
+
+Given that the item is defective, the probability that it was made by the third machine is only 5/24. Although machine C produces half of the total output, it produces a much smaller fraction of the defective items. Hence the knowledge that the item selected was defective enables us to replace the prior probability P(XC) = 1/2 by the smaller posterior probability P(XC|Y) = 5/24.
+
+-->
+
+<br>
+
+# 5. Random Variables: Expectation & Variance
+<br>
+
+> <font size="2"> _Simply put, a Random Variable is a variable whose values depend on a random/stochastic process._ </font>
+
+<br>
+
+A __Random Variable__ $X$ must be conceptualized as a __function__ whose:
+
+- _domain_ is a sample space $\Omega$ of possible outcomes of a random phenomenon, and 
+- _range_ is 
+
+  + any (finite/infinite) countable set of numbers – in case of __discrete__ random variables.
+  + infinite uncountable set of real numbers – in case of __continuous__ random variables.
+
+<br>
+
+> <font size="2"> _Since a random variable's values are determined by a stochastic process, __every random variable is characterized by a probability distribution.___ </font>
+
+<br>
+
+
+If the Random Variable $X$ is:
+
+- _discrete_: the corresponding probability distribution is called as __probability mass function__ $f_X(x_i)$, that assigns a probability to each value of $X$, $f_X(x_i) = P(X=x_i)$.
+- _continuous_: the corresponding probability distribution is called as __probability density function__ $f_X(x)$, that assigns probabilities to intervals of values of $X$, $P(1 \leq X \leq 2) = \int_{1}^{2} f_X(x) dx$. 
+  + In particular, _continuous random variables almost never take an exact prescribed value $c$_ (i.e., $P(X=c) = 0, \ \forall c \in \mathbb{R}$), but there is a _positive probability that its value will lie in particular intervals which can be arbitrarily small._
+
+<br>
+
+__NOTE:__ whenever we talk about random variables, there are inadvertently two probability distributions involved. 
+One is of the random stochastic process that generates values of the random variable (the not so interesting one), and the other of the random variable itself (the one we are more interested in).
+
+<br>
+
+## Expectation
+<br>
+
+> <font size="2"> _The Expectation $\mathbb{E}_X$ of a random variable $X$ represents the average of a large number of independent realizations of $X$_.</font>
+
+<br>
+
+For random variables which are:
+
+- _discrete_: $\mathbb{E}_X$ is found using the probability mass function. 
+    + $\mathbb{E}_X = \sum_{i} x_i.f_X(x_i)$, where $f_X(x_i)$ is the probability mass function of $X$.
+    
+  
+- _continuous_: $\mathbb{E}_X$ is found using the probability density function.
+    + $\mathbb{E}_X = \int  x.f_X(x) \ dx$, where $f_X(x)$ is the probability density function of $X$.
+
+<br>
+
+### Example
+
+If $X$ is a discrete random variable such that it takes values from the finite set $S$ = {0,1,2,3,4}.
+
+- If $X$ were _equally likely_ to take any of the 5 values, and you were to sample $X$ 10 times, what would be the average of these value of $X$?
+```{r, echo=FALSE}
+x <- c(0,1,2,3,4)
+px <- rep(0.2, 5)
+
+X <- tibble(x, px) %>% print
+
+samples <- sample(x, prob=px,
+           10, 
+           replace = T) %>% print %>%  mean %>% print
+```
+  + As the number of samples increase to 10000, the average of these 10000 realizations of $X$ would become closer and closer to the mean of {0,1,2,3,4} i.e., 2.
+  
+- If $X$ were biased (more likely) towards taking the value 4 such that:
+```{r, echo=FALSE}
+x <- c(0,1,2,3,4)
+px_biased <- c(0.05,0.05,0.05,0.05,0.8)
+
+X_biased <- tibble(x, px_biased) %>% print
+```
+
+  and if now you were to sample 10000 realizations of $X_{biased}$, what would your average value be close to?
+```{r, echo=FALSE}
+samples <- sample(x, prob=px_biased,
+           10000, 
+           replace = T) %>%  mean %>% print
+```
+- Seems like the value of this average of $X_{biased}$ now has a tendency to converge to 3.5. 
+- In fact, 3.5 is the expected value of the biased random variable $X_{biased}$ as below:
+
+  $\mathbb{E}_{X_{biased}} = \sum_{i} x_i.f_{X_{biased}}(x_i) = 0\times0.05 + 1\times0.05 + 2\times0.05 + 3\times0.05 + 4\times0.80$
+  $\mathbb{E}_{X_{biased}} = 0 + 0.05 + 0.10 + 0.15 + 3.2 = 3.5$
+
+<br>
+
+## Variance
+
+<br>
+
+> <font size="2"> _The Variance $\mathbb{E}_X$ of a random variable $X$ represents how far a large number of independent realizations of $X$ have been spread out from its expected value_.</font>
+
+<br>
+
+For random variables which are:
+
+- _discrete_: $Var(X)$ is found using the probability mass function. 
+    + $Var(X) = \sum_{i} (x_i-\mathbb{E}_X)^2.f_X(x_i)$, where $f_X(x_i)$ is the probability mass function of $X$.
+    
+  
+- _continuous_: $Var(X)$ is found using the probability density function.
+    + $Var(X) = \int  (x-\mathbb{E}_X)^2.f_X(x) \ dx$, where $f_X(x)$ is the probability density function of $X$.
+
+<br>
+
+### Example
+
+Consider again $X$ as a discrete random variable such that it takes values from the finite set $S$ = {0,1,2,3,4}.
+
+- When all realizations of $X$ are _equally likely_ and you were to take the variance of 10000 values of $X$:
+
+```{r, echo=FALSE}
+samples <- sample(x, prob=px,
+           10000, 
+           replace = T) %>%  var %>% print
+# X %>%
+#   ggplot(mapping = aes(x = x, y = px))+
+#   geom_col(size=3, fill="#0072B2")+
+#   ylim(0,0.3)+
+#   xlab("Random Variable X")+
+#   ylab("Probability of X = x")
+
+```
+- The value of variance seems to be close to 2, which is the true variance of $X$:
+  $Var(X) = 0.2\times(0-2)^2 + 0.2\times(1-2)^2 + 0.2\times(2-2)^2 + 0.2\times(3-2)^2 + 0.2\times(4-2)^2$
+  $Var(X) = 0.8 + 0.2 + 0 + 0.2 + 0.8 = 2.0$
+
+- When $X$ is biased ($X_{biased}$) towards 4 as above and you were to take the variance of 10000 values of $X$:
+
+```{r, echo=FALSE}
+samples <- sample(x, prob=px_biased,
+           10000, 
+           replace = T) %>%  var %>% print
+```
+
+- The true variance of $X_{biased}$:
+  $Var(X_{biased}) = 0.05\times(0-3.5)^2 + 0.05\times(1-3.5)^2 + 0.05\times(2-3.5)^2 + 0.05\times(3-3.5)^2 + 0.8\times(4-3.5)^2$
+  $Var(X_{biased}) = 0.6125 + 0.3125 + 0.1125 + 0.000125 + 0.2 = 1.237625$
+
+<br>
+
+## A Random Variable from Rolling a Pair of Dice
+
+<br>
+
+- The underlying __stochastic process__: rolling  of the two dice with elementary outcome space as the set of all combinations ($n_1$, $n_2$), where $n_1$ and $n_2$ can take values from {$1,2,3,4,5,6$}.
+  + number of possible outcomes: 36
+  
+    <center>
+    
+    ![](./Screenshot from 2019-12-08 14-36-31.png){#id .class width=50% height=40%}
+    
+    </center>
+    
+  + Probability distribution of the outcomes of two dice
+```{r, echo=FALSE}
+diceroll <- tibble(
+  outcomes = factor(c("(1,1)", "(1,2)", "(1,3)", "(1,4)", "(1,5)", "(1,6)",
+                        "(2,1)", "(2,2)", "(2,3)", "(2,4)", "(2,5)", "(2,6)",
+                        "(3,1)", "(3,2)", "(3,3)", "(3,4)", "(3,5)", "(3,6)",
+                        "(4,1)", "(4,2)", "(4,3)", "(4,4)", "(4,5)", "(4,6)",
+                        "(5,1)", "(5,2)", "(5,3)", "(5,4)", "(5,5)", "(5,6)",
+                        "(6,1)", "(6,2)", "(6,3)", "(6,4)", "(6,5)", "(6,6)")),
+  probability = rep(1/36, 36)
+)
+diceroll %>%
+  ggplot(mapping = aes(x = outcomes, y = probability))+
+  geom_col(size=3, fill="Sky Blue")+
+  ylim(0,0.05)+
+  xlab("outcome of rolling two dice") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size=9))
+```
+  
+<br>
+
+- __Random Variable__: sum of the numbers appearing on the two dice., i.e., _X_ = $n_1$ + $n_2$.
+  + possible outcomes: {2,3,4,5,6,7,8,9,10,11,12}.
+    
+    <center>
+
+    ![](./Screenshot from 2019-12-08 14-36-53.png){#id .class width=50% height=40%}
+
+    </center>
+
+  + Probability distribution of the sum of numbers
+  
+```{r, echo=FALSE}
+diceroll_sum <- tribble(
+  ~sum,  ~probability,  
+  2,     1/36,
+  3,     2/36,
+  4,     3/36,
+  5,     4/36,
+  6,     5/36,
+  7,     6/36,
+  8,     5/36,
+  9,     4/36,
+  10,    3/36,
+  11,    2/36,
+  12,    1/36
+)
+
+diceroll_sum %>% print
+
+diceroll_sum %>%
+ggplot(mapping = aes(x = sum, y = probability))+
+  geom_col(fill="#56B4E9") +
+  scale_x_continuous(name = "sum of the two dice' outcomes", breaks = c(2,3,4,5,6,7,8,9,10,11,12))+
+  ggtitle("Probability Mass Distribution of the Sum of Numbers on Roll of Two Dice ")
+
+```
+
+<br>
+
+
+- __Expectation__ of the Sum
+
+```{r}
+expectation <- function(values, prob){
+  E = sum(values*prob)
+  return(E)
+}
+
+expectation(diceroll_sum$sum, diceroll_sum$probability)
+```
+
+<br>
+
+- __Variance__ of the Sum
+```{r}
+variance <- function(values, prob){
+  v = sum((values-sum(values*prob))^2*prob)
+  return(v)
+}
+
+variance(diceroll_sum$sum, diceroll_sum$probability)
+#variance(rep(1,36), diceroll$probability)
+```
+
+<!--#### Exercise:-->
+
+
+<br>
+
+# 6. Cumulative Distributions
+
+<br>
+
+> <font size="2"> _A Cumulative Distributions $F_X(x)$ accounts for the probability that the value of a random variable $X$ is less than $x$ _.</font>
+
+<br>
+
+For random variables which are:
+
+- _discrete_: The probability of $X$ being less than or equal to a given value $x_i$ is given by:
+  + $F_X(x_i) = P(X\leq x_i) = \sum_{\forall x_j:x_j \leq x_i}f_X(x_j)$, where $f_X(x_j)$ is the probability mass function of $X$.
+
+- _continuous_: The probability of $X$ being less than or equal to a given value $x$ is given by:
+  + $F_X(x) = P(X\leq x) = \int_{-\infty}^{x}f_X(x)dx$, where $f_X(x)$ is the probability density function of $X$.
+
+<br>
+
+```{r}
+diceroll_sum %>%
+ggplot(mapping = aes(x = sum, y = cumsum(probability)))+
+  geom_col(fill="#0072B2") +
+  scale_x_continuous(name = "sum of the two dice' outcomes", breaks = c(2,3,4,5,6,7,8,9,10,11,12))+
+  ylab("probability")+
+  ggtitle("Cumulative Distribution of the Sum of Numbers on Roll of Two Dice ")
+```
+
+<br>
+
+# Questions?
+
+<br><br>
